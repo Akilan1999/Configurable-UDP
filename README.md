@@ -9,3 +9,7 @@ heart beat packets for performance reasons.
 ## Good motivating video
 https://m.youtube.com/watch?v=VDR8ws0eIbI&pp=ygUMcmVsaWFibGUudWRw0gcJCY8Co7VqN5tD
 "Building A UDP Protocol For Cloud Gaming // Chris Dickson, Parsec"
+
+## Reference implementation specs
+https://datatracker.ietf.org/doc/html/draft-ietf-sigtran-reliable-udp-00/
+"RELIABLE UDP PROTOCOL"
