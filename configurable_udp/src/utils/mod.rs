@@ -1,2 +1,2 @@
 pub mod utils;
-pub mod packet_structure;
+pub mod bincode;
