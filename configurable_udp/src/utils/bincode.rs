@@ -1,6 +1,10 @@
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+//! bincode module
 
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+
+/// # Purpose function
+///
 /// The goal here is to define a data structure for encoding packets with information
 /// Few things to identify:
 /// - Size of the packet (Transmission mode specific network card of ethernet) (For IPv4, the
@@ -24,7 +28,13 @@ pub fn encode<T: Serialize>(value: T) -> Vec<u8> {
     encoded
 }
 
-pub fn decode<T: DeserializeOwned>(value: &[u8]) -> T {
+/// # Purpose of function
+///
+/// decoding function
+pub fn decode<T>(value: &[u8]) -> T
+where
+    T: DeserializeOwned,
+{
     let data = bincode::deserialize(&value).unwrap();
     data
 }

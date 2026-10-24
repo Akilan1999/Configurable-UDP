@@ -1,27 +1,39 @@
+//! Reliability module
+
+
 use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
+/// Constant
 const N: u128 = 1000;
 
-// define a result queue 
+/// defines a result queue data packet
 
 #[derive(Serialize)]
 pub struct DataPacketStructure {
+    /// identity value
     id: u8,
+    /// sequence number
     seq_no: u8,
+    /// Data being transferred
     data: Vec<u8>,
 }
 
+/// Defines number of packets
 #[derive(Serialize,Deserialize)]
 pub struct NumberOfPackets {
+    /// concrete length
     packet_length: u8,
 }
 
+/// Type of packet being transmitted
 pub enum PacketType {
+    /// Defines the inner packet structure
     DataPacketStructure(DataPacketStructure),
+    /// Defines the number of packets
     NumberOfPackets(NumberOfPackets),
 }
-
+/// Creates a Data packet from a vector of bytes
 pub fn create_data_packet(data: Vec<u8>) -> DataPacketStructure {
     DataPacketStructure{
         id: 0,
@@ -30,6 +42,7 @@ pub fn create_data_packet(data: Vec<u8>) -> DataPacketStructure {
     }
 }
 
+/// Matching on packet type
 pub fn type_match_packet(bytes: &[u8]) {
     println!("bytes {bytes:?}");
     // decode udp packet attributes

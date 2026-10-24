@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "udp_configurable"
+name = "udp_configurable_lib"
 path = "src/lib.rs"
 [[bin]]
 name = "udp_configurable"
