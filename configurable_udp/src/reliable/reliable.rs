@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-const n: u128 = 1000;
+
+#[allow(dead_code)]
+const N: u128 = 1000;
 
 // define a result queue 
 
@@ -29,7 +31,7 @@ pub fn create_data_packet(data: Vec<u8>) -> DataPacketStructure {
 }
 
 pub fn type_match_packet(bytes: &[u8]) {
-    println!("bytes {:?}", &bytes)
+    println!("bytes {bytes:?}");
     // decode udp packet attributes
     // let d: DataPacketStructure = decode(bytes);
 
