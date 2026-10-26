@@ -1,3 +1,5 @@
+extern crate core;
+
 use crate::utils::bincode::{*};
 use crate::reliable::reliable::{*};
 use crate::utils::utils::*;
@@ -9,19 +11,16 @@ fn main() {
     let soc1 = init_udp("3246".parse().unwrap());
 
 
-    let foo = "Hello world testing a random long string ";
+    let foo = "lol";
     let data = create_data_packet(foo.as_bytes().to_vec());
 
-    let encoded = encode(data);
-    let bytes: &[u8] = &encoded;
-
-    println!("encoded bytes {:?}", &bytes);
+    let encoded = encode(&data);
 
     // Self test send random bytes
-    soc.send_to(bytes,"0.0.0.0:3246").expect("send_to should succeed");
+    soc.send_to(&encoded,"0.0.0.0:3246").expect("send_to should succeed");
 
     // should be the same packet size (For testing fixed to 50 bytes)
-    let mut buf = [0; 655];
+    let mut buf = [0; 6555];
 
     // Test to see if both bytes are received
     // println!("received {received} bytes {:?}", &buf)

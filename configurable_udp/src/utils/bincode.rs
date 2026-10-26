@@ -23,12 +23,20 @@ use serde::{Deserialize, Serialize};
 // Get rid of serde "Starting from bincode 2, serde is now an optional dependency.
 // If you want to use serde, please enable the serde feature. See Features for more
 // information."
-pub fn encode<T: Serialize>(value: T) -> Vec<u8> {
-    let encoded: Vec<u8> = bincode::serialize(&value).unwrap();
-    encoded
+
+// To be looked into to encode Rust structs
+// pub fn encode<T: Serialize>(value: T) -> Vec<u8> {
+//     bincode::serialize(&value).unwrap()
+// }
+//
+// pub fn decode<T: DeserializeOwned>(value: &[u8]) -> T {
+//     bincode::deserialize(value).unwrap()
+// }
+
+pub fn encode<T: Serialize>(data: &T) -> Vec<u8> {
+    serde_json::to_vec(data).unwrap()
 }
 
-pub fn decode<T: DeserializeOwned>(value: &[u8]) -> T {
-    let data = bincode::deserialize(&value).unwrap();
-    data
+pub fn decode<T: DeserializeOwned>(bytes: &[u8]) -> T {
+    serde_json::from_slice(bytes).unwrap()
 }
