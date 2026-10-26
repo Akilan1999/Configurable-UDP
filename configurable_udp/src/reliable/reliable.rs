@@ -1,8 +1,6 @@
+//! Reliability module
 use serde::{Deserialize, Serialize};
-use crate::utils::bincode::decode;
-
-const n: u128 = 1000;
-
+// use crate::utils::bincode::decode;
 
 // ------------------ Packet IDs -------------------
 const DATA_PACKET_STRUCTURE_CODE: u64 = 1;
@@ -23,13 +21,13 @@ pub struct NumberOfPackets {
     packet_type: u64,
     packet_length: u64,
 }
-
-#[derive(Serialize, Deserialize, Debug)]
 pub enum PacketType {
+    /// Defines the inner packet structure
     DataPacketStructure(DataPacketStructure),
+    /// Defines the number of packets
     NumberOfPackets(NumberOfPackets),
 }
-
+/// Creates a Data packet from a vector of bytes
 pub fn create_data_packet(data: Vec<u8>) -> DataPacketStructure {
     DataPacketStructure {
         packet_type: DATA_PACKET_STRUCTURE_CODE,
@@ -38,6 +36,7 @@ pub fn create_data_packet(data: Vec<u8>) -> DataPacketStructure {
     }
 }
 
+/// Matching on packet type
 pub fn type_match_packet(bytes: &[u8]) {
     let value: serde_json::Value = serde_json::from_slice(bytes).unwrap();
 

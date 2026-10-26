@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "udp_configurable"
+name = "udp_configurable_lib"
 path = "src/lib.rs"
 [[bin]]
 name = "udp_configurable"
@@ -15,3 +15,20 @@ path = "src/bin.rs"
 bincode = "1.0.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
+
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+cargo = "warn"
+nursery = "warn"
+restriction = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+unreachable = "warn"
+dbg_macro = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
