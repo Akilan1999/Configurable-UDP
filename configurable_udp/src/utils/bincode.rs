@@ -49,9 +49,21 @@ where
 /// It errors when the the value is corrupted or there is a configuration mismatch.
 /// 
 #[inline]
-pub fn decode<T, Ctx>(value: &[u8]) -> Result<(T, usize), error::Error>
+pub fn decode<T>(value: &[u8]) -> Result<(T, usize), error::Error>
 where
     T: bincode::Decode<()>,
 {
     bincode::decode_from_slice(value, *CONFIG).map_err(error::Error::Decode)
 }
+
+/*
+
+pub fn encode<T: Serialize>(data: &T) -> Vec<u8> {
+    serde_json::to_vec(data).unwrap()
+}
+
+pub fn decode<T: DeserializeOwned>(bytes: &[u8]) -> T {
+    serde_json::from_slice(bytes).unwrap()
+// >>>>>>> origin/master
+}
+*/
