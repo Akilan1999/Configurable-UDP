@@ -1,3 +1,3 @@
-//! reliable
+//! reliable.
 
 pub mod reliable;

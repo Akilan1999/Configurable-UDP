@@ -12,8 +12,8 @@ path = "src/bin.rs"
 
 
 [dependencies]
-bincode = "1.0.0"
-serde = { version = "1.0.229", features = ["derive"] }
+bincode = "2.0.1"
+
 
 
 [lints.clippy]

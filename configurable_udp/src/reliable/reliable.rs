@@ -1,39 +1,40 @@
-//! Reliability module
+//! Reliability module.
+
+use bincode::{Decode, Encode};
 
 
-use serde::{Deserialize, Serialize};
-
-#[allow(dead_code)]
-/// Constant
+#[expect(dead_code, reason="still prototyping")]
+/// Constant.
 const N: u128 = 1000;
 
-/// defines a result queue data packet
+/// defines a result queue data packet.
 
-#[derive(Serialize)]
+#[derive(Encode)]
 pub struct DataPacketStructure {
-    /// identity value
+    /// identity value.
     id: u8,
-    /// sequence number
+    /// sequence number.
     seq_no: u8,
-    /// Data being transferred
+    /// Data being transferred.
     data: Vec<u8>,
 }
 
-/// Defines number of packets
-#[derive(Serialize,Deserialize)]
+/// Defines number of packets.
+#[derive(Encode, Decode)]
 pub struct NumberOfPackets {
-    /// concrete length
+    /// concrete length.
     packet_length: u8,
 }
 
-/// Type of packet being transmitted
+/// Type of packet being transmitted.
+#[non_exhaustive]
 pub enum PacketType {
-    /// Defines the inner packet structure
+    /// Defines the inner packet structure.
     DataPacketStructure(DataPacketStructure),
-    /// Defines the number of packets
+    /// Defines the number of packets.
     NumberOfPackets(NumberOfPackets),
 }
-/// Creates a Data packet from a vector of bytes
+/// Creates a Data packet from a vector of bytes.
 pub fn create_data_packet(data: Vec<u8>) -> DataPacketStructure {
     DataPacketStructure{
         id: 0,
@@ -42,7 +43,7 @@ pub fn create_data_packet(data: Vec<u8>) -> DataPacketStructure {
     }
 }
 
-/// Matching on packet type
+/// Matching on packet type.
 pub fn type_match_packet(bytes: &[u8]) {
     println!("bytes {bytes:?}");
     // decode udp packet attributes

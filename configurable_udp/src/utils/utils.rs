@@ -1,15 +1,13 @@
 //! Utils module
-
-
-//! reference: <https://github.com/wangmarkqi/udp_hole_punching>
+//! reference: <https://github.com/wangmarkqi/udp_hole_punching>.
 use std::net::UdpSocket;
 
 /// # initiating udp
-/// this initiates udp
-pub fn init_udp(port: String) -> UdpSocket {
+/// this initiates udp.
+pub(crate) fn init_udp(port: &str) -> Result<UdpSocket, std::io::Error> {
     let addr = format!("{}:{}", "0.0.0.0", port);
-    let soc = UdpSocket::bind(addr).expect("udp can not open");
-    soc
+
+    UdpSocket::bind(addr)
 }
 
 // Future
