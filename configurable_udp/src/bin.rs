@@ -6,8 +6,7 @@ pub mod error;
 pub mod reliable;
 pub mod utils;
 
-use crate::reliable::reliable::{DataPacketStructure, create_data_packet, type_match_packet_serde};
-use crate::utils::bincode::decode;
+use crate::reliable::reliable::{create_data_packet,type_match_packet};
 use crate::utils::{bincode::encode, utils::init_udp};
 
 /// Running example.
@@ -32,11 +31,7 @@ fn main() -> ! {
     loop {
         match soc1.recv(&mut buf) {
             Ok(received) => {
-                let (data_packet, len): (DataPacketStructure, usize) =
-                    decode(buf.get(..received).expect("expected to decode bincode"))
-                        .expect("expected to parse data packet");
-                dbg!(data_packet);
-                // type_match_packet_serde(buf.get(..received).expect("expected to get buffer data"));
+                type_match_packet(buf.get(..received).expect("expected to decode bincode"))
             }
             Err(e) => println!("recv function failed: {e:?}"),
         }
