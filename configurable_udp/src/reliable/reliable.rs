@@ -1,6 +1,6 @@
 //! Reliability module.
 
-use crate::utils::bincode::decode;
+use crate::utils::ende::decode;
 use crate::utils::queue::Queue;
 use bincode::{Decode, Encode};
 use std::sync::{LazyLock, Mutex};
