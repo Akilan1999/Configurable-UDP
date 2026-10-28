@@ -51,7 +51,6 @@ fn main() -> ! {
             dbg!(e);
         })
         .expect("send_to should succeed");
-    println!("RUNNING");
 
     // should be the same packet size (For testing fixed to 50 bytes)
     let mut buf = [0; 6555];
