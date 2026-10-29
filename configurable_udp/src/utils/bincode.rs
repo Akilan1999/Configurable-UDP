@@ -28,7 +28,6 @@ const CONFIG: LazyCell<Configuration<LittleEndian, Fixint, NoLimit>> = LazyCell:
 /// - The packet transmission starts from 0. (Pre-computed on the transmitter for number of packets needed).
 /// - The data size is user defined.
 ///   <https://git.sr.ht/~stygianentity/bincode> (Used for encoding and decoding bytes)
-///   TODO: To write custom serialise library in rust
 ///   takes any type and returns it as encoded bytes
 ///   todo: look into upgrading to (<https://docs.rs/bincode/2.0.0-rc.3/bincode/index.html>)
 #[inline]
