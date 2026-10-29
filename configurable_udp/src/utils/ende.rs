@@ -1,4 +1,4 @@
-//! bincode module.
+//! Encode Decode module.
 
 use crate::error;
 use bincode::{
@@ -31,11 +31,11 @@ const CONFIG: LazyCell<Configuration<LittleEndian, Fixint, NoLimit>> = LazyCell:
 ///   takes any type and returns it as encoded bytes
 ///   todo: look into upgrading to (<https://docs.rs/bincode/2.0.0-rc.3/bincode/index.html>)
 #[inline]
-pub(crate) fn encode<T>(value: T) -> Result<Vec<u8>, error::Error>
+pub(crate) fn encode<T>(value: T, slice: &mut [u8]) -> Result<usize, error::Error>
 where
     T: Encode,
 {
-    bincode::encode_to_vec(&value, *CONFIG).map_err(error::Error::Encode)
+    bincode::encode_into_slice(&value, slice, *CONFIG).map_err(error::Error::Encode)
 }
 
 /// # Purpose of function

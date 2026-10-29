@@ -1,7 +1,7 @@
 //! utils.
 
 pub mod utils;
-pub mod bincode;
+pub mod ende;
 pub mod queue;
 mod stack;
 mod hashmap;
