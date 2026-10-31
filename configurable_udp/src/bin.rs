@@ -7,7 +7,7 @@ pub mod reliable;
 pub mod utils;
 
 use crate::reliable::reliable::{create_data_packet, type_match_packet};
-use crate::utils::{ende::encode, utils::init_udp};
+use crate::utils::{encode_decode::encode, utils::init_udp};
 
 /// Running example.
 fn main() -> ! {

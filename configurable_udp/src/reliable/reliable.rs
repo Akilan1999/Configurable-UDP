@@ -1,6 +1,6 @@
 //! Reliability module.
 
-use crate::utils::ende::{decode, encode};
+use crate::utils::encode_decode::{decode, encode};
 use crate::utils::queue::Queue;
 use bincode::{Decode, Encode};
 use std::sync::{LazyLock, Mutex};
@@ -9,16 +9,19 @@ use std::net::{SocketAddr, UdpSocket};
 // ------------------ Packet IDs -------------------
 const DATA_PACKET_STRUCTURE_CODE: u64 = 1;
 const NUMBER_OF_PACKETS_CODE: u64 = 2;
-const ACK_CODE: u64 = 3;
+const PACKETS_REQUIRED: u64 = 3;
 // -------------------------------------------------
 
 /// Defines number of packets.
 #[derive(Debug, Encode, Decode)]
 pub struct NumberOfPackets {
-    /// concrete length.
-    packet_length: u8,
     /// type of packet.
     packet_type: u64,
+    /// packet
+    number_of_packets: u8,
+    /// chuck size of each of the
+    /// packets
+    packet_chuck_size: u8,
 }
 
 /// define a global result queue
@@ -65,7 +68,7 @@ pub fn create_data_packet(data: Vec<u8>) -> DataPacketStructure {
 /// In our case a shared queue for a user to pull from.
 pub fn handle_data_packet(data: DataPacketStructure, socket_info: SocketInformation) {
     // Sends an ACK packet of the last packet received
-    send_ack(data.seq_no,socket_info)
+    // send_ack(data.seq_no,socket_info)
 }
 // ---------------------------------- Send ACK ----------------------------------------
 /// This is for temporary measure for testing. The goal is to not have any ACK and NAK packets.
@@ -74,21 +77,21 @@ pub fn handle_data_packet(data: DataPacketStructure, socket_info: SocketInformat
 /// The sliding window (https://en.wikipedia.org/wiki/Sliding_window_protocol).
 
 #[derive(Debug, Encode, Decode)]
-pub struct Ack {
+pub struct PacketRequired {
     /// type of packet.
     packet_type: u64,
     /// type of packet.
-    last_packet: u64,
+    packets_required: Vec<u8>,
 }
-pub fn send_ack(last_packet: u64, socket_info: SocketInformation) {
+pub fn send_ack(packets_required: Vec<u8>, socket_info: SocketInformation) {
     // Create Ack packet
-    let ack = Ack {
-        packet_type: ACK_CODE,
-        last_packet,
+    let packets_required = PacketRequired {
+        packet_type: PACKETS_REQUIRED,
+        packets_required
     };
     // ------------- Encode Ack packet and transmit it through ------------
     let mut encode_buf: [u8; 6555] = [0; 6555];
-    let encoded_len = encode(&ack, &mut encode_buf)
+    let encoded_len = encode(&packets_required, &mut encode_buf)
         .expect("Did not encode data");
     socket_info.socket.send_to(&encode_buf[..encoded_len], socket_info.send_addr)
         .expect("send_to should succeed");
@@ -109,7 +112,7 @@ pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocke
     // Create the socker information
     let socket_info = SocketInformation {
         socket,
-        send_addr: source_addr,
+        send_addr: source_addr
     };
 
     match packet_type.packet_type {
@@ -125,8 +128,8 @@ pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocke
             dbg!(&num_packet);
             // TODO custom handlers
         }
-        ACK_CODE => {
-            let (ack, _): (Ack, usize) =
+        PACKETS_REQUIRED => {
+            let (ack, _): (PacketRequired, usize) =
                 decode(bytes).expect("expected to parse data packet");
             dbg!(&ack);
         }
