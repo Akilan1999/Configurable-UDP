@@ -58,15 +58,33 @@ fn main() -> ! {
     // Test to see if both bytes are received
     // println!("received {received} bytes {:?}", &buf)
     loop {
-        match soc1.recv(&mut buf) {
-            Ok(received_len) => {
-                println!("running");
+        // Socket 1 receiving data
+        match soc1.recv_from(&mut buf) {
+            Ok((received_len,send_addr)) => {
                 type_match_packet(
                     buf.get(..received_len)
                         .inspect(|received| {
                             dbg!(received);
                         })
                         .expect("expected to decode bincode"),
+                    send_addr,
+                    soc1.try_clone().expect("soc1 clone failed"),
+                )
+            }
+            Err(e) => println!("recv function failed: {e:?}"),
+        }
+
+        // Receiving information back to the regular socket
+        match soc.recv_from(&mut buf) {
+            Ok((received_len,send_addr)) => {
+                type_match_packet(
+                    buf.get(..received_len)
+                        .inspect(|received| {
+                            dbg!(received);
+                        })
+                        .expect("expected to decode bincode"),
+                    send_addr,
+                    soc1.try_clone().expect("soc clone failed"),
                 )
             }
             Err(e) => println!("recv function failed: {e:?}"),
