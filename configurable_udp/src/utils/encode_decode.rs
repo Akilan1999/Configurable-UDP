@@ -38,21 +38,26 @@ where
     bincode::encode_into_slice(&value, slice, *CONFIG).map_err(error::Error::Encode)
 }
 
+// pub(crate) struct Encoded { }
+
 /// # Purpose of function
 ///
 /// decoding function.
 ///
-/// 
+///
 /// # Errors
 ///
 /// It errors when the the value is corrupted or there is a configuration mismatch.
-/// 
+///
 #[inline]
-pub fn decode<T>(value: &[u8]) -> Result<(T, usize), error::Error>
+pub fn decode<T, V>(value: V) -> Result<T, error::Error>
 where
+    V: AsRef<[u8]>,
     T: bincode::Decode<()>,
 {
-    bincode::decode_from_slice(value, *CONFIG).map_err(error::Error::Decode)
+    bincode::decode_from_slice(value.as_ref(), *CONFIG)
+        .map_err(error::Error::Decode)
+        .map(|(v, _)| v)
 }
 
 /*

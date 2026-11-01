@@ -6,12 +6,12 @@ pub mod error;
 pub mod reliable;
 pub mod utils;
 
-use crate::reliable::reliable::{create_data_packet, type_match_packet};
+use crate::reliable::reliable::{DataPacketStructure, type_match_packet};
 use crate::utils::{encode_decode::encode, utils::init_udp};
 
 /// Running example.
 fn main() -> ! {
-    let soc = init_udp("3245")
+    let soc2 = init_udp("3245")
         .inspect(|v| {
             dbg!(v);
         })
@@ -28,8 +28,7 @@ fn main() -> ! {
         })
         .unwrap();
 
-    let str: &str = "lol";
-    let data = create_data_packet(str.as_bytes().to_vec());
+    let data: DataPacketStructure = "wrug".into();
 
     let mut encode_buf: [u8; 6555] = [0; 6555];
 
@@ -43,7 +42,7 @@ fn main() -> ! {
         .expect("Did not encode data");
 
     // Self test send random bytes
-    soc.send_to(&encode_buf[..encoded_len], "0.0.0.0:3246")
+    soc2.send_to(&encode_buf[..encoded_len], "0.0.0.0:3246")
         .inspect(|enc| {
             dbg!(enc);
         })
@@ -74,8 +73,8 @@ fn main() -> ! {
             Err(e) => println!("recv function failed: {e:?}"),
         }
 
-        // Receiving information back to the regular socket
-        match soc.recv_from(&mut buf) {
+        // Socket 2 Receiving information back to the regular socket
+        match soc2.recv_from(&mut buf) {
             Ok((received_len,send_addr)) => {
                 type_match_packet(
                     buf.get(..received_len)
@@ -85,7 +84,7 @@ fn main() -> ! {
                         .expect("expected to decode bincode"),
                     send_addr,
                     soc1.try_clone().expect("soc clone failed"),
-                )
+                );
             }
             Err(e) => println!("recv function failed: {e:?}"),
         }
