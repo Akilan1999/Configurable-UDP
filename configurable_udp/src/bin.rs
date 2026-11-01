@@ -28,21 +28,28 @@ fn main() -> ! {
         })
         .unwrap();
 
-    let data: DataPacketStructure = "wrug".into();
+    {
+        // block to release buffer and encoded data
+        let data: DataPacketStructure = "wrug".into();
 
-    let mut encode_buf: [u8; 6555] = [0; 6555];
+        let mut encode_buf: [u8; 6555] = [0; 6555];
 
-    let encoded_len = encode(&data, &mut encode_buf)
-        .inspect(|encoded| {
-            dbg!(encoded);
-        })
-        .inspect_err(|e| {
-            dbg!(e);
-        })
-        .expect("Did not encode data");
+        let enc_data = encode(&data, &mut encode_buf)
+            .inspect(|encoded| {
+                dbg!(encoded);
+            })
+            .inspect_err(|e| {
+                dbg!(e);
+            })
+            .expect("Did not encode data");
 
-    // Self test send random bytes
-    soc2.send_to(&encode_buf[..encoded_len], "0.0.0.0:3246")
+        // Self test send random bytes
+        soc2.send_to(
+            enc_data
+                .get_slice()
+                .expect("could not get data slice from encoded data"),
+            "0.0.0.0:3246",
+        )
         .inspect(|enc| {
             dbg!(enc);
         })
@@ -50,6 +57,7 @@ fn main() -> ! {
             dbg!(e);
         })
         .expect("send_to should succeed");
+    };
 
     // should be the same packet size (For testing fixed to 50 bytes)
     let mut buf = [0; 6555];
@@ -59,23 +67,21 @@ fn main() -> ! {
     loop {
         // Socket 1 receiving data
         match soc1.recv_from(&mut buf) {
-            Ok((received_len,send_addr)) => {
-                type_match_packet(
-                    buf.get(..received_len)
-                        .inspect(|received| {
-                            dbg!(received);
-                        })
-                        .expect("expected to decode bincode"),
-                    send_addr,
-                    soc1.try_clone().expect("soc1 clone failed"),
-                )
-            }
+            Ok((received_len, send_addr)) => type_match_packet(
+                buf.get(..received_len)
+                    .inspect(|received| {
+                        dbg!(received);
+                    })
+                    .expect("expected to decode bincode"),
+                send_addr,
+                soc1.try_clone().expect("soc1 clone failed"),
+            ),
             Err(e) => println!("recv function failed: {e:?}"),
         }
 
         // Socket 2 Receiving information back to the regular socket
         match soc2.recv_from(&mut buf) {
-            Ok((received_len,send_addr)) => {
+            Ok((received_len, send_addr)) => {
                 type_match_packet(
                     buf.get(..received_len)
                         .inspect(|received| {

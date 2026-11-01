@@ -31,11 +31,25 @@ const CONFIG: LazyCell<Configuration<LittleEndian, Fixint, NoLimit>> = LazyCell:
 ///   takes any type and returns it as encoded bytes
 ///   todo: look into upgrading to (<https://docs.rs/bincode/2.0.0-rc.3/bincode/index.html>)
 #[inline]
-pub(crate) fn encode<T>(value: T, slice: &mut [u8]) -> Result<usize, error::Error>
+pub(crate) fn encode<'a, T>(value: T, slice: &'a mut [u8]) -> Result<EncodedData<'a>, error::Error>
 where
     T: Encode,
 {
-    bincode::encode_into_slice(&value, slice, *CONFIG).map_err(error::Error::Encode)
+    bincode::encode_into_slice(&value, slice, *CONFIG)
+        .map_err(error::Error::Encode)
+        .map(|len| EncodedData { slice, len })
+}
+
+#[derive(Debug)]
+pub struct EncodedData<'a> {
+    slice: &'a [u8],
+    len: usize,
+}
+
+impl<'a> EncodedData<'a> {
+    pub fn get_slice(&self) -> Option<&[u8]> {
+        self.slice.get(..self.len)
+    }
 }
 
 // pub(crate) struct Encoded { }

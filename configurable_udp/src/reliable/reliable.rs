@@ -95,10 +95,15 @@ pub fn send_ack(packets_required: Vec<u8>, socket_info: SocketInformation) {
     };
     // ------------- Encode Ack packet and transmit it through ------------
     let mut encode_buf: [u8; 6555] = [0; 6555];
-    let encoded_len = encode(&packets_required, &mut encode_buf).expect("Did not encode data");
+    let enc_data = encode(&packets_required, &mut encode_buf).expect("Did not encode data");
     socket_info
         .socket
-        .send_to(&encode_buf[..encoded_len], socket_info.send_addr)
+        .send_to(
+            enc_data
+                .get_slice()
+                .expect("could not get slice from encoded data"),
+            socket_info.send_addr,
+        )
         .expect("send_to should succeed");
     // --------------------------------------------------------------------
 }
@@ -124,6 +129,7 @@ pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocke
             dbg!(&data_packet);
 
             dbg!(String::from_utf8_lossy(&data_packet.data));
+            println!("urg");
             handle_data_packet(data_packet, socket_info);
         }
         NUMBER_OF_PACKETS_CODE => {
