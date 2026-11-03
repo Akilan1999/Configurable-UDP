@@ -6,7 +6,7 @@ pub mod error;
 pub mod reliable;
 pub mod utils;
 
-use crate::reliable::reliable::{DataPacketStructure, type_match_packet};
+use crate::reliable::reliable::{DataPacketStructure, type_match_packet, Packet};
 use crate::utils::{encode_decode::encode, utils::init_udp};
 
 /// Running example.
@@ -30,7 +30,10 @@ fn main() -> ! {
 
     {
         // block to release buffer and encoded data
-        let data: DataPacketStructure = "wrug".into();
+        // let data: DataPacketStructure = "wrug".into();
+
+        let str: &str = "lol";
+        let data = DataPacketStructure::create(str.as_bytes().to_vec());
 
         let mut encode_buf: [u8; 6555] = [0; 6555];
 

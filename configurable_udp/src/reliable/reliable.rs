@@ -8,7 +8,13 @@ use std::net::{SocketAddr, UdpSocket};
 const DATA_PACKET_STRUCTURE_CODE: u64 = 1;
 const NUMBER_OF_PACKETS_CODE: u64 = 2;
 const PACKETS_REQUIRED: u64 = 3;
-// -------------------------------------------------
+// --------------------------------------------------
+// -------------- Common attributes ----------------
+pub trait Packet {
+    fn process(self, socket :SocketInformation);
+}
+
+// ------------------------------------------------
 
 /// Defines number of packets.
 #[derive(Debug, Copy, Clone, Encode, Decode)]
@@ -51,29 +57,49 @@ pub struct DataPacketStructure {
     data: Vec<u8>,
 }
 
-/// Creates a Data packet from a vector of bytes.
-impl<T> From<T> for DataPacketStructure
-where
-    T: Into<Vec<u8>>,
-{
-    fn from(into_bytes: T) -> Self {
+impl DataPacketStructure {
+    pub(crate) fn create(data: Vec<u8>) -> Self {
         DataPacketStructure {
             packet_type: DATA_PACKET_STRUCTURE_CODE,
             // Hard code: To be defined based on the fragmentation
             // logic
             seq_no: 2,
-            data: into_bytes.into(),
+            data,
         }
+
     }
 }
+
+impl Packet for DataPacketStructure {
+    fn process(self,socket :SocketInformation) {
+        dbg!(String::from_utf8_lossy(&self.data));
+    }
+}
+
+/// Creates a Data packet from a vector of bytes.
+/// TODO: Implement this later on.
+// impl<T> From<T> for DataPacketStructure
+// where
+//     T: Into<Vec<u8>>,
+// {
+//     fn from(into_bytes: T) -> Self {
+//         DataPacketStructure {
+//             packet_type: DATA_PACKET_STRUCTURE_CODE,
+//             // Hard code: To be defined based on the fragmentation
+//             // logic
+//             seq_no: 2,
+//             data: into_bytes.into(),
+//         }
+//     }
+// }
 
 /// The goal is to create an assembly queue for the data packets
 /// Currently would store all packets in memory and then used defined location
 /// In our case a shared queue for a user to pull from.
-pub fn handle_data_packet(data: DataPacketStructure, socket_info: SocketInformation) {
-    // Sends an ACK packet of the last packet received
-    // send_ack(data.seq_no,socket_info)
-}
+// pub fn handle_data_packet(data: DataPacketStructure, socket_info: SocketInformation) {
+//     // Sends an ACK packet of the last packet received
+//     // send_ack(data.seq_no,socket_info)
+// }
 // ---------------------------------- Send ACK ----------------------------------------
 /// This is for temporary measure for testing. The goal is to not have any ACK and NAK packets.
 /// Rather the receiver after a certain interval for retransmission of the missing packets.
@@ -126,16 +152,11 @@ pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocke
         DATA_PACKET_STRUCTURE_CODE => {
             let data_packet: DataPacketStructure =
                 decode(bytes).expect("expected to parse data packet");
-            dbg!(&data_packet);
-
-            dbg!(String::from_utf8_lossy(&data_packet.data));
-            println!("urg");
-            handle_data_packet(data_packet, socket_info);
+            DataPacketStructure::process(data_packet, socket_info);
         }
         NUMBER_OF_PACKETS_CODE => {
             let num_packet: NumberOfPackets = decode(bytes).expect("expected to parse data packet");
             dbg!(&num_packet);
-            // TODO custom handlers
         }
         PACKETS_REQUIRED => {
             let ack: PacketRequired = decode(bytes).expect("expected to parse data packet");
