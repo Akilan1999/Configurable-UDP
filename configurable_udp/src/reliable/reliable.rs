@@ -1,9 +1,7 @@
 //! Reliability module.
 
 use crate::utils::encode_decode::{decode, encode};
-use crate::utils::queue::Queue;
 use bincode::{Decode, Encode};
-use std::sync::{LazyLock, Mutex};
 use std::net::{SocketAddr, UdpSocket};
 
 // ------------------ Packet IDs -------------------
@@ -13,29 +11,30 @@ const PACKETS_REQUIRED: u64 = 3;
 // -------------------------------------------------
 
 /// Defines number of packets.
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Copy, Clone, Encode, Decode)]
 pub struct NumberOfPackets {
     /// type of packet.
     packet_type: u64,
-    /// packet
+    /// packet.
     number_of_packets: u8,
-    /// chuck size of each of the
-    /// packets
+    /// chuck size of each of the packets.
     packet_chuck_size: u8,
 }
 
 /// define a global result queue
-/// Single threaded queue
+/// Single threaded queue.
 // pub static mut CUSTOMPACKET: LazyLock<Mutex<Queue<&[u8]>>> =
 //     LazyLock::new(|| Mutex::new(Queue::new()));
 
 // ----------------------------- For extracting packet ID ---------------------------------
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Clone, Copy, Encode, Decode)]
 pub struct DecodePacket {
     pub packet_type: u64,
 }
 // -------------------------------------------------------------------------------------
 // ----------------------------- Socket information -----------------------------------
+
+#[derive(Debug)]
 pub struct SocketInformation {
     pub socket: UdpSocket,
     pub send_addr: SocketAddr,
@@ -53,13 +52,18 @@ pub struct DataPacketStructure {
 }
 
 /// Creates a Data packet from a vector of bytes.
-pub fn create_data_packet(data: Vec<u8>) -> DataPacketStructure {
-    DataPacketStructure {
-        packet_type: DATA_PACKET_STRUCTURE_CODE,
-        // Hard code: To be defined based on the fragmentation
-        // logic
-        seq_no: 2,
-        data,
+impl<T> From<T> for DataPacketStructure
+where
+    T: Into<Vec<u8>>,
+{
+    fn from(into_bytes: T) -> Self {
+        DataPacketStructure {
+            packet_type: DATA_PACKET_STRUCTURE_CODE,
+            // Hard code: To be defined based on the fragmentation
+            // logic
+            seq_no: 2,
+            data: into_bytes.into(),
+        }
     }
 }
 
@@ -87,55 +91,59 @@ pub fn send_ack(packets_required: Vec<u8>, socket_info: SocketInformation) {
     // Create Ack packet
     let packets_required = PacketRequired {
         packet_type: PACKETS_REQUIRED,
-        packets_required
+        packets_required,
     };
     // ------------- Encode Ack packet and transmit it through ------------
     let mut encode_buf: [u8; 6555] = [0; 6555];
-    let encoded_len = encode(&packets_required, &mut encode_buf)
-        .expect("Did not encode data");
-    socket_info.socket.send_to(&encode_buf[..encoded_len], socket_info.send_addr)
+    let enc_data = encode(&packets_required, &mut encode_buf).expect("Did not encode data");
+    socket_info
+        .socket
+        .send_to(
+            enc_data
+                .get_slice()
+                .expect("could not get slice from encoded data"),
+            socket_info.send_addr,
+        )
         .expect("send_to should succeed");
     // --------------------------------------------------------------------
 }
 
-pub fn recv_ack(socket_info: SocketInformation) {
-
-}
+pub fn recv_ack(socket_info: SocketInformation) {}
 // ------------------------------------------------------------------------------------
 
 /// Matching on packet type.
 pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocket) {
     // Decodes the type of packet intercepted
-    let (packet_type, _): (DecodePacket, usize) =
-        decode(bytes).expect("expected to parse data packet");
+    let packet_type: DecodePacket = decode(bytes).expect("expected to parse data packet");
 
     // Create the socker information
     let socket_info = SocketInformation {
         socket,
-        send_addr: source_addr
+        send_addr: source_addr,
     };
 
     match packet_type.packet_type {
         DATA_PACKET_STRUCTURE_CODE => {
-            let (data_packet, _): (DataPacketStructure, usize) =
+            let data_packet: DataPacketStructure =
                 decode(bytes).expect("expected to parse data packet");
             dbg!(&data_packet);
-            handle_data_packet(data_packet,socket_info);
+
+            dbg!(String::from_utf8_lossy(&data_packet.data));
+            println!("urg");
+            handle_data_packet(data_packet, socket_info);
         }
         NUMBER_OF_PACKETS_CODE => {
-            let (num_packet, _): (NumberOfPackets, usize) =
-                decode(bytes).expect("expected to parse data packet");
+            let num_packet: NumberOfPackets = decode(bytes).expect("expected to parse data packet");
             dbg!(&num_packet);
             // TODO custom handlers
         }
         PACKETS_REQUIRED => {
-            let (ack, _): (PacketRequired, usize) =
-                decode(bytes).expect("expected to parse data packet");
+            let ack: PacketRequired = decode(bytes).expect("expected to parse data packet");
             dbg!(&ack);
         }
         _ => {
             // For handling custom packets passed through
             // CUSTOMPACKET.lock().unwrap().enqueue(bytes)
-        },
+        }
     }
 }
