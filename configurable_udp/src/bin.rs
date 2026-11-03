@@ -5,97 +5,44 @@
 pub mod error;
 pub mod reliable;
 pub mod utils;
+pub mod usercalls;
 
-use crate::reliable::reliable::{DataPacketStructure, type_match_packet, Packet};
-use crate::utils::{encode_decode::encode, utils::init_udp};
+use std::net::UdpSocket;
+use bincode::{Decode, Encode};
+use crate::reliable::reliable::{Packet};
+use crate::usercalls::usercalls::{init, recv, send};
+
+trait Handler {
+    fn handle(self,socket: UdpSocket);
+}
+
+impl Handler for test {
+    fn handle(self,socket: UdpSocket) {
+        todo!()
+    }
+}
+
+#[derive(Debug, Encode, Decode)]
+struct test {
+    name: String,
+    number: u8
+}
 
 /// Running example.
 fn main() -> ! {
-    let soc2 = init_udp("3245")
-        .inspect(|v| {
-            dbg!(v);
-        })
-        .inspect_err(|e| {
-            dbg!(e);
-        })
-        .unwrap();
-    let soc1 = init_udp("3246")
-        .inspect(|v| {
-            dbg!(v);
-        })
-        .inspect_err(|e| {
-            dbg!(e);
-        })
-        .unwrap();
+    let soc2 = init("3245").unwrap();
+    let soc1 = init("3246").unwrap();
 
-    {
-        // block to release buffer and encoded data
-        // let data: DataPacketStructure = "wrug".into();
-
-        let str: &str = "lol";
-        let data = DataPacketStructure::create(str.as_bytes().to_vec());
-
-        let mut encode_buf: [u8; 6555] = [0; 6555];
-
-        let enc_data = encode(&data, &mut encode_buf)
-            .inspect(|encoded| {
-                dbg!(encoded);
-            })
-            .inspect_err(|e| {
-                dbg!(e);
-            })
-            .expect("Did not encode data");
-
-        // Self test send random bytes
-        soc2.send_to(
-            enc_data
-                .get_slice()
-                .expect("could not get data slice from encoded data"),
-            "0.0.0.0:3246",
-        )
-        .inspect(|enc| {
-            dbg!(enc);
-        })
-        .inspect_err(|e| {
-            dbg!(e);
-        })
-        .expect("send_to should succeed");
+    let a = test {
+        number: 105,
+        name: String::from("Test lol"),
     };
+    send(&soc2,a,"0.0.0.0:3246");
 
-    // should be the same packet size (For testing fixed to 50 bytes)
-    let mut buf = [0; 6555];
-
-    // Test to see if both bytes are received
-    // println!("received {received} bytes {:?}", &buf)
     loop {
         // Socket 1 receiving data
-        match soc1.recv_from(&mut buf) {
-            Ok((received_len, send_addr)) => type_match_packet(
-                buf.get(..received_len)
-                    .inspect(|received| {
-                        dbg!(received);
-                    })
-                    .expect("expected to decode bincode"),
-                send_addr,
-                soc1.try_clone().expect("soc1 clone failed"),
-            ),
-            Err(e) => println!("recv function failed: {e:?}"),
-        }
-
-        // Socket 2 Receiving information back to the regular socket
-        match soc2.recv_from(&mut buf) {
-            Ok((received_len, send_addr)) => {
-                type_match_packet(
-                    buf.get(..received_len)
-                        .inspect(|received| {
-                            dbg!(received);
-                        })
-                        .expect("expected to decode bincode"),
-                    send_addr,
-                    soc1.try_clone().expect("soc clone failed"),
-                );
-            }
-            Err(e) => println!("recv function failed: {e:?}"),
-        }
+        recv(&soc1);
+        // Socket 2 receiving data
+        recv(&soc2);
     }
 }

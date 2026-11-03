@@ -6,6 +6,7 @@ use bincode::{
     config::{Configuration, Fixint, LittleEndian, NoLimit},
 };
 use core::cell::LazyCell;
+use crate::error::Error;
 
 /// Default Configuration for encoding and decoding.
 const CONFIG: LazyCell<Configuration<LittleEndian, Fixint, NoLimit>> = LazyCell::new(|| {
@@ -14,22 +15,6 @@ const CONFIG: LazyCell<Configuration<LittleEndian, Fixint, NoLimit>> = LazyCell:
         .with_fixed_int_encoding()
 });
 
-/// # Purpose function
-///
-/// The goal here is to define a data structure for encoding packets with information
-/// Few things to identify:
-/// - Size of the packet (Transmission mode specific network card of ethernet) (For IPv4, the
-///   maximum payload size is 65535 octets minus the UDP header and minus the IP header because IPv4
-///   has a 16-bit length field that also includes the header length.) source: <https://www.rfc-editor.org/info/rfc5426>/
-/// - Structure of packets apart from UDP headers (Base information which can be overwritten with user defined constructs).
-///
-/// Definition for reliable packet transmission
-/// - Assumption 2 nodes know each other.
-/// - The packet transmission starts from 0. (Pre-computed on the transmitter for number of packets needed).
-/// - The data size is user defined.
-///   <https://git.sr.ht/~stygianentity/bincode> (Used for encoding and decoding bytes)
-///   takes any type and returns it as encoded bytes
-///   todo: look into upgrading to (<https://docs.rs/bincode/2.0.0-rc.3/bincode/index.html>)
 #[inline]
 pub(crate) fn encode<'a, T>(value: T, slice: &'a mut [u8]) -> Result<EncodedData<'a>, error::Error>
 where
@@ -52,7 +37,10 @@ impl<'a> EncodedData<'a> {
     }
 }
 
-// pub(crate) struct Encoded { }
+pub fn encode_vec<T: bincode::Encode>(data: T) ->  Result<Vec<u8>, Error> {
+    bincode::encode_to_vec(&data, *CONFIG).map_err(Error::Encode)
+}
+
 
 /// # Purpose of function
 ///

@@ -1,4 +1,4 @@
 //! reliable.
 
 pub mod reliable;
-mod fragments;
+pub mod fragments;
