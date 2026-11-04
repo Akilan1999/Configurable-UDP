@@ -2,14 +2,16 @@
 
 use std::{io::Error, net::UdpSocket};
 use std::net::SocketAddr;
+use std::sync::{LazyLock, Mutex};
 use bincode::encode_to_vec;
 use crate::reliable::reliable::{DataPacketStructure, type_match_packet, Packet};
 use crate::utils::{encode_decode::encode, utils::init_udp};
 use crate::utils::encode_decode::encode_vec;
-
+use crate::utils::queue::Queue;
 
 // Temporary measure
 const BUFFER_SIZE: usize = 6555;
+static TRANSMISSION_NUMBERS: usize = 0;
 
 pub fn init(port: &str) -> Result<UdpSocket,Error> {
     init_udp(port)
@@ -20,8 +22,7 @@ pub fn init(port: &str) -> Result<UdpSocket,Error> {
 // broken down into a fragment and
 // can be sent over directly.
 // TODO: Result -> T to be replaced with standard transmission related information
-pub fn send<T: bincode::Encode>(soc: &UdpSocket, data: T, dest_addr: &str) {
-    // ------------------------------------------------------------------------
+pub fn send<T: bincode::Encode>(soc: &UdpSocket, data: T, dest_addr: &str, transmission_id: u8) {
     let vec_data = encode_vec(data).inspect(|encoded| {
         dbg!(encoded);
     })
@@ -30,7 +31,7 @@ pub fn send<T: bincode::Encode>(soc: &UdpSocket, data: T, dest_addr: &str) {
         })
         .expect("Did not encode data");
     // ------------------------------------------------------------------------
-    let data_struct = DataPacketStructure::create(vec_data);
+    let data_struct = DataPacketStructure::create(vec_data,transmission_id);
     let mut encode_buf: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
     // ------------------------------------------------------------------------
     let enc_data = encode(&data_struct, &mut encode_buf)
@@ -58,15 +59,18 @@ pub fn send<T: bincode::Encode>(soc: &UdpSocket, data: T, dest_addr: &str) {
         .expect("send_to should succeed");
     // ------------------------------------------------------------------------
 }
+
 pub fn recv(socket: &UdpSocket) {
     let mut buf = [0; BUFFER_SIZE];
 
     match socket.recv_from(&mut buf) {
-        Ok((received_len, send_addr)) => type_match_packet(
-            buf.get(..received_len).expect("expected to decode bincode"),
-            send_addr,
-            socket.try_clone().expect("soc1 clone failed"),
-        ),
+        Ok((received_len, send_addr)) => {
+            let data = type_match_packet(
+                buf.get(..received_len).expect("expected to decode bincode"),
+                send_addr,
+                socket.try_clone().expect("soc1 clone failed"),
+            );
+        },
         Err(e) => println!("recv function failed: {e:?}"),
     }
 }

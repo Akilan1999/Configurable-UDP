@@ -11,7 +11,9 @@ const PACKETS_REQUIRED: u64 = 3;
 // --------------------------------------------------
 // -------------- Common attributes ----------------
 pub trait Packet {
-    fn process(self, socket :SocketInformation);
+    // TODO: Add result type (<res,error>)
+    // Completed list
+    fn process(&self, socket :SocketInformation);
 }
 
 // ------------------------------------------------
@@ -51,6 +53,8 @@ pub struct SocketInformation {
 pub struct DataPacketStructure {
     /// type of packet.
     packet_type: u64,
+    /// transmission id
+    transmission_id: u8,
     /// sequence number.
     seq_no: u64,
     /// inner data.
@@ -58,9 +62,10 @@ pub struct DataPacketStructure {
 }
 
 impl DataPacketStructure {
-    pub(crate) fn create(data: Vec<u8>) -> Self {
+    pub(crate) fn create(data: Vec<u8>,transmission_id: u8) -> Self {
         DataPacketStructure {
             packet_type: DATA_PACKET_STRUCTURE_CODE,
+            transmission_id,
             // Hard code: To be defined based on the fragmentation
             // logic
             seq_no: 2,
@@ -71,8 +76,9 @@ impl DataPacketStructure {
 }
 
 impl Packet for DataPacketStructure {
-    fn process(self,socket :SocketInformation) {
-        dbg!(String::from_utf8_lossy(&self.data));
+    fn process(&self,socket :SocketInformation) {
+        // let dec: Test = decode(self.data).expect("failed to decode packet");
+        // dbg!(dec);
     }
 }
 
@@ -138,7 +144,7 @@ pub fn recv_ack(socket_info: SocketInformation) {}
 // ------------------------------------------------------------------------------------
 
 /// Matching on packet type.
-pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocket) {
+pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocket) -> Vec<u8> {
     // Decodes the type of packet intercepted
     let packet_type: DecodePacket = decode(bytes).expect("expected to parse data packet");
 
@@ -152,19 +158,24 @@ pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocke
         DATA_PACKET_STRUCTURE_CODE => {
             let data_packet: DataPacketStructure =
                 decode(bytes).expect("expected to parse data packet");
-            DataPacketStructure::process(data_packet, socket_info);
+            DataPacketStructure::process(&data_packet, socket_info);
+            data_packet.data
         }
         NUMBER_OF_PACKETS_CODE => {
             let num_packet: NumberOfPackets = decode(bytes).expect("expected to parse data packet");
             dbg!(&num_packet);
+            // Empty vector
+            vec![]
         }
         PACKETS_REQUIRED => {
             let ack: PacketRequired = decode(bytes).expect("expected to parse data packet");
             dbg!(&ack);
+            // Empty vector
+            vec![]
         }
         _ => {
-            // For handling custom packets passed through
-            // CUSTOMPACKET.lock().unwrap().enqueue(bytes)
+            // Empty vector
+            vec![]
         }
     }
 }

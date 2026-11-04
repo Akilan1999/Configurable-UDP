@@ -37,7 +37,8 @@ fn main() -> ! {
         number: 105,
         name: String::from("Test lol"),
     };
-    send(&soc2,a,"0.0.0.0:3246");
+
+    send(&soc2,a,"0.0.0.0:3246",1);
 
     loop {
         // Socket 1 receiving data
