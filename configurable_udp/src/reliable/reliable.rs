@@ -116,7 +116,6 @@ impl Packet for DataPacketStructure {
 pub struct PacketRequired {
     /// type of packet.
     packet_type: u64,
-    /// type of packet.
     packets_required: Vec<u8>,
 }
 pub fn send_ack(packets_required: Vec<u8>, socket_info: SocketInformation) {
@@ -147,6 +146,7 @@ pub fn recv_ack(socket_info: SocketInformation) {}
 pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocket) -> Vec<u8> {
     // Decodes the type of packet intercepted
     let packet_type: DecodePacket = decode(bytes).expect("expected to parse data packet");
+
 
     // Create the socker information
     let socket_info = SocketInformation {

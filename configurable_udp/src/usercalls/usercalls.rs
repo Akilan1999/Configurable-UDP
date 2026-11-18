@@ -24,10 +24,10 @@ pub fn init(port: &str) -> Result<UdpSocket,Error> {
 // TODO: Result -> T to be replaced with standard transmission related information
 pub fn send<T: bincode::Encode>(soc: &UdpSocket, data: T, dest_addr: &str, transmission_id: u8) {
     let vec_data = encode_vec(data).inspect(|encoded| {
-        dbg!(encoded);
+        // dbg!(encoded);
     })
         .inspect_err(|e| {
-            dbg!(e);
+            // dbg!(e);
         })
         .expect("Did not encode data");
     // ------------------------------------------------------------------------
@@ -36,10 +36,10 @@ pub fn send<T: bincode::Encode>(soc: &UdpSocket, data: T, dest_addr: &str, trans
     // ------------------------------------------------------------------------
     let enc_data = encode(&data_struct, &mut encode_buf)
         .inspect(|encoded| {
-            dbg!(encoded);
+            // dbg!(encoded);
         })
         .inspect_err(|e| {
-            dbg!(e);
+            // dbg!(e);
         })
         .expect("Did not encode data");
     // ------------------------------------------------------------------------
@@ -51,16 +51,16 @@ pub fn send<T: bincode::Encode>(soc: &UdpSocket, data: T, dest_addr: &str, trans
         dest_addr,
     )
         .inspect(|enc| {
-            dbg!(enc);
+            // dbg!(enc);
         })
         .inspect_err(|e| {
-            dbg!(e);
+            // dbg!(e);
         })
         .expect("send_to should succeed");
     // ------------------------------------------------------------------------
 }
 
-pub fn recv(socket: &UdpSocket) {
+pub fn recv(socket: &UdpSocket) -> Vec<u8> {
     let mut buf = [0; BUFFER_SIZE];
 
     match socket.recv_from(&mut buf) {
@@ -70,8 +70,12 @@ pub fn recv(socket: &UdpSocket) {
                 send_addr,
                 socket.try_clone().expect("soc1 clone failed"),
             );
+            data
         },
-        Err(e) => println!("recv function failed: {e:?}"),
+        Err(e) => {
+            println!("recv function failed: {e:?}");
+            Vec::new()
+        },
     }
 }
 
