@@ -10,7 +10,7 @@ pub mod usercalls;
 use std::net::UdpSocket;
 use bincode::{Decode, Encode};
 use crate::reliable::reliable::{Packet};
-use crate::usercalls::usercalls::{init, recv, send};
+use crate::usercalls::usercalls::{init, recv, send, send_reliable};
 use crate::utils::encode_decode::decode;
 
 trait Handler {
@@ -30,21 +30,26 @@ struct Test {
 }
 
 /// Running example.
-fn main() -> ! {
-    let soc2 = init("3245").unwrap();
-    let soc1 = init("3246").unwrap();
+fn main() {
+    let soc2 = init("3245");
+    let soc1 = init("3246");
+
+    let soc2_net = soc2.0.unwrap();
+    let soc1_net = soc1.0.unwrap();
 
     let a = Test {
         number: 105,
         name: String::from("Test lol"),
     };
 
-    send(&soc2,a,"0.0.0.0:3246",1);
+    send_reliable(&soc2_net, a, "0.0.0.0:3246", 1, soc2.1);
 
-    // Assume one packet at a time as a start
+    // send(&soc2_net,a,"0.0.0.0:3246",1);
+    //
+    // // Assume one packet at a time as a start
     loop {
         // Socket 1 receiving data
-        let data = recv(&soc1);
+        let data = recv(&soc1_net);
         let d: Test = decode(data.unwrap()).unwrap();
         dbg!(d);
         // Match statement to cast it to the right struct

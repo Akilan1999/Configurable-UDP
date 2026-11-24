@@ -8,7 +8,7 @@ use std::net::{SocketAddr, UdpSocket};
 const DATA_PACKET_STRUCTURE_CODE: u64 = 1;
 const ACK: u64 = 2;
 // -----------------------------------------------------------------------
-// -------------------------- Common attributes --------------------------
+// -------------------------- General attributes --------------------------
 pub trait Packet {
     fn process(self, socket :SocketInformation) -> Option<Vec<u8>>;
 }
@@ -59,7 +59,7 @@ impl Packet for DataPacketStructure {
 }
 
 //--------------------------------------------------------------------------------
-// ----------------------------- Ack packets logic ------------------------------
+// ----------------------------- Ack packets logic -------------------------------
 
 #[derive(Debug, Encode, Decode)]
 pub struct Ack {
@@ -75,7 +75,10 @@ pub fn send_ack(transmission_id: u8, socket_info: SocketInformation) {
     };
     // Encode Ack packet and transmit it through
     let mut encode_buf: [u8; 6555] = [0; 6555];
-    let enc_data = encode(&packets_required, &mut encode_buf).expect("Did not encode data");
+
+    let enc_data = encode(&packets_required, &mut encode_buf)
+        .expect("Did not encode data");
+
     socket_info
         .socket
         .send_to(
@@ -88,10 +91,13 @@ pub fn send_ack(transmission_id: u8, socket_info: SocketInformation) {
 }
  impl Packet for Ack {
      fn process(self, socket :SocketInformation) -> Option<Vec<u8>> {
-         None
+         Some(vec![self.transmission_id])
      }
  }
 
+
+//--------------------------------------------------------------------------------
+// ----------------------------- General packet logic ----------------------------
 
 pub enum Packets {
     Data(DataPacketStructure),
@@ -127,9 +133,10 @@ pub fn decode_prime(bytes: &[u8]) -> Option<Packets> {
     }
 }
 
-pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocket) -> Option<Vec<u8>> {
+pub fn packet_handling(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocket) -> Option<Vec<u8>> {
 
-    let packet_type: Packets = decode_prime(bytes).expect("expected to parse data packet");
+    let packet_type: Packets = decode_prime(bytes)
+        .expect("expected to parse data packet");
 
     // Create the socker information
     let socket_info = SocketInformation {
@@ -139,3 +146,4 @@ pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocke
 
     packet_type.process(socket_info)
 }
+//-----------------------------------------------------------------------------------
