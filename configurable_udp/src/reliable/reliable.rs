@@ -4,59 +4,37 @@ use crate::utils::encode_decode::{decode, encode};
 use bincode::{Decode, Encode};
 use std::net::{SocketAddr, UdpSocket};
 
-// ------------------ Packet IDs -------------------
+// ------------------------------ Packet IDs -----------------------------
 const DATA_PACKET_STRUCTURE_CODE: u64 = 1;
-const NUMBER_OF_PACKETS_CODE: u64 = 2;
-const PACKETS_REQUIRED: u64 = 3;
-// --------------------------------------------------
-// -------------- Common attributes ----------------
+const ACK: u64 = 2;
+// -----------------------------------------------------------------------
+// -------------------------- Common attributes --------------------------
 pub trait Packet {
-    // TODO: Add result type (<res,error>)
-    // Completed list
-    fn process(&self, socket :SocketInformation);
+    fn process(self, socket :SocketInformation) -> Option<Vec<u8>>;
 }
 
-// ------------------------------------------------
-
-/// Defines number of packets.
-#[derive(Debug, Copy, Clone, Encode, Decode)]
-pub struct NumberOfPackets {
-    /// type of packet.
-    packet_type: u64,
-    /// packet.
-    number_of_packets: u8,
-    /// chuck size of each of the packets.
-    packet_chuck_size: u8,
-}
-
-/// define a global result queue
-/// Single threaded queue.
-// pub static mut CUSTOMPACKET: LazyLock<Mutex<Queue<&[u8]>>> =
-//     LazyLock::new(|| Mutex::new(Queue::new()));
-
-// ----------------------------- For extracting packet ID ---------------------------------
-#[derive(Debug, Clone, Copy, Encode, Decode)]
+// for extracting packet ID
+#[derive(Debug, Encode, Decode)]
 pub struct DecodePacket {
     pub packet_type: u64,
 }
-// -------------------------------------------------------------------------------------
-// ----------------------------- Socket information -----------------------------------
+
+// ----------------------------------------------------------------------------
+// ----------------------------- Socket information ---------------------------
 
 #[derive(Debug)]
 pub struct SocketInformation {
     pub socket: UdpSocket,
     pub send_addr: SocketAddr,
 }
-//-----------------------------------------------------------------------------------
-// ----------------------------- Data packets logic ---------------------------------
+//--------------------------------------------------------------------------------
+// ----------------------------- Data packets logic ------------------------------
 #[derive(Debug, Encode, Decode)]
 pub struct DataPacketStructure {
     /// type of packet.
     packet_type: u64,
     /// transmission id
     transmission_id: u8,
-    /// sequence number.
-    seq_no: u64,
     /// inner data.
     data: Vec<u8>,
 }
@@ -66,9 +44,6 @@ impl DataPacketStructure {
         DataPacketStructure {
             packet_type: DATA_PACKET_STRUCTURE_CODE,
             transmission_id,
-            // Hard code: To be defined based on the fragmentation
-            // logic
-            seq_no: 2,
             data,
         }
 
@@ -76,55 +51,29 @@ impl DataPacketStructure {
 }
 
 impl Packet for DataPacketStructure {
-    fn process(&self,socket :SocketInformation) {
-        // let dec: Test = decode(self.data).expect("failed to decode packet");
-        // dbg!(dec);
+    fn process(self,socket :SocketInformation) -> Option<Vec<u8>> {
+        // Send ack packet
+        send_ack(self.transmission_id, socket);
+        Some(self.data)
     }
 }
 
-/// Creates a Data packet from a vector of bytes.
-/// TODO: Implement this later on.
-// impl<T> From<T> for DataPacketStructure
-// where
-//     T: Into<Vec<u8>>,
-// {
-//     fn from(into_bytes: T) -> Self {
-//         DataPacketStructure {
-//             packet_type: DATA_PACKET_STRUCTURE_CODE,
-//             // Hard code: To be defined based on the fragmentation
-//             // logic
-//             seq_no: 2,
-//             data: into_bytes.into(),
-//         }
-//     }
-// }
-
-/// The goal is to create an assembly queue for the data packets
-/// Currently would store all packets in memory and then used defined location
-/// In our case a shared queue for a user to pull from.
-// pub fn handle_data_packet(data: DataPacketStructure, socket_info: SocketInformation) {
-//     // Sends an ACK packet of the last packet received
-//     // send_ack(data.seq_no,socket_info)
-// }
-// ---------------------------------- Send ACK ----------------------------------------
-/// This is for temporary measure for testing. The goal is to not have any ACK and NAK packets.
-/// Rather the receiver after a certain interval for retransmission of the missing packets.
-/// This allows reliability of packets in any order and programmer decides at a higher level
-/// The sliding window (https://en.wikipedia.org/wiki/Sliding_window_protocol).
+//--------------------------------------------------------------------------------
+// ----------------------------- Ack packets logic ------------------------------
 
 #[derive(Debug, Encode, Decode)]
-pub struct PacketRequired {
+pub struct Ack {
     /// type of packet.
     packet_type: u64,
-    packets_required: Vec<u8>,
+    transmission_id: u8,
 }
-pub fn send_ack(packets_required: Vec<u8>, socket_info: SocketInformation) {
+pub fn send_ack(transmission_id: u8, socket_info: SocketInformation) {
     // Create Ack packet
-    let packets_required = PacketRequired {
-        packet_type: PACKETS_REQUIRED,
-        packets_required,
+    let packets_required = Ack {
+        packet_type: ACK,
+        transmission_id,
     };
-    // ------------- Encode Ack packet and transmit it through ------------
+    // Encode Ack packet and transmit it through
     let mut encode_buf: [u8; 6555] = [0; 6555];
     let enc_data = encode(&packets_required, &mut encode_buf).expect("Did not encode data");
     socket_info
@@ -136,17 +85,51 @@ pub fn send_ack(packets_required: Vec<u8>, socket_info: SocketInformation) {
             socket_info.send_addr,
         )
         .expect("send_to should succeed");
-    // --------------------------------------------------------------------
+}
+ impl Packet for Ack {
+     fn process(self, socket :SocketInformation) -> Option<Vec<u8>> {
+         None
+     }
+ }
+
+
+pub enum Packets {
+    Data(DataPacketStructure),
+    Ack(Ack),
 }
 
-pub fn recv_ack(socket_info: SocketInformation) {}
-// ------------------------------------------------------------------------------------
-
-/// Matching on packet type.
-pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocket) -> Vec<u8> {
-    // Decodes the type of packet intercepted
+impl Packet for Packets {
+    fn process(self, socket: SocketInformation) -> Option<Vec<u8>> {
+        match self {
+            Packets::Data(data_packet_structure) => {
+                data_packet_structure.process(socket)
+            },
+            Packets::Ack(ack) => {
+                ack.process(socket)
+            }
+        }
+    }
+}
+pub fn decode_prime(bytes: &[u8]) -> Option<Packets> {
     let packet_type: DecodePacket = decode(bytes).expect("expected to parse data packet");
 
+    match packet_type.packet_type {
+        DATA_PACKET_STRUCTURE_CODE => {
+            let data_packet: DataPacketStructure =
+                decode(bytes).expect("expected to parse data packet");
+            Some(Packets::Data(data_packet))
+        }
+        ACK => {
+            let ack: Ack = decode(bytes).expect("expected to parse data packet");
+            Some(Packets::Ack(ack))
+        }
+        _ => None
+    }
+}
+
+pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocket) -> Option<Vec<u8>> {
+
+    let packet_type: Packets = decode_prime(bytes).expect("expected to parse data packet");
 
     // Create the socker information
     let socket_info = SocketInformation {
@@ -154,28 +137,5 @@ pub fn type_match_packet(bytes: &[u8], source_addr: SocketAddr, socket: UdpSocke
         send_addr: source_addr,
     };
 
-    match packet_type.packet_type {
-        DATA_PACKET_STRUCTURE_CODE => {
-            let data_packet: DataPacketStructure =
-                decode(bytes).expect("expected to parse data packet");
-            DataPacketStructure::process(&data_packet, socket_info);
-            data_packet.data
-        }
-        NUMBER_OF_PACKETS_CODE => {
-            let num_packet: NumberOfPackets = decode(bytes).expect("expected to parse data packet");
-            dbg!(&num_packet);
-            // Empty vector
-            vec![]
-        }
-        PACKETS_REQUIRED => {
-            let ack: PacketRequired = decode(bytes).expect("expected to parse data packet");
-            dbg!(&ack);
-            // Empty vector
-            vec![]
-        }
-        _ => {
-            // Empty vector
-            vec![]
-        }
-    }
+    packet_type.process(socket_info)
 }
