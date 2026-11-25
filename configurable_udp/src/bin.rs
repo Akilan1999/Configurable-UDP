@@ -8,6 +8,7 @@ pub mod utils;
 pub mod usercalls;
 
 use std::net::UdpSocket;
+use std::thread;
 use bincode::{Decode, Encode};
 use crate::reliable::reliable::{Packet};
 use crate::usercalls::usercalls::{init, recv, send, send_reliable};
@@ -42,16 +43,17 @@ fn main() {
         name: String::from("Test lol"),
     };
 
-    send_reliable(&soc2_net, a, "0.0.0.0:3246", 1, soc2.1);
+    // Sends the tasks as a background process 
+    thread::spawn(move || {
+        send_reliable(&soc2_net, a, "0.0.0.0:3246", 10, soc2.1);
+    });
 
-    // send(&soc2_net,a,"0.0.0.0:3246",1);
-    //
-    // // Assume one packet at a time as a start
     loop {
         // Socket 1 receiving data
-        let data = recv(&soc1_net);
-        let d: Test = decode(data.unwrap()).unwrap();
-        dbg!(d);
-        // Match statement to cast it to the right struct
+        let data = recv(&soc1_net,soc1.1.time_before_resend);
+        if !data.is_none() {
+            let d: Test = decode(data.unwrap()).unwrap();
+            dbg!(d);
+        }
     }
 }

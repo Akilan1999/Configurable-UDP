@@ -1,6 +1,7 @@
 //! usercalls module
 
 use std::{io::Error, net::UdpSocket, thread};
+use std::os::unix::raw::time_t;
 use std::time::Duration;
 use crate::reliable::reliable::{DataPacketStructure, packet_handling, Packet};
 use crate::utils::{encode_decode::encode, utils::init_udp};
@@ -18,13 +19,13 @@ pub fn init(port: &str) -> (Result<UdpSocket,Error>,Config) {
     // set as defaults
     let conf = Config {
         retries: 3,
-        time_before_resend: 3,
+        time_before_resend: 1,
     };
     (init_udp(port),conf)
 }
 
 pub fn send<T: bincode::Encode>(soc: &UdpSocket,
-                                data: T,
+                                data: &T,
                                 dest_addr: &str,
                                 transmission_id: u8) {
     let vec_data = encode_vec(data).expect("Did not encode data");
@@ -48,43 +49,38 @@ pub fn send_reliable<T: bincode::Encode>(soc: &UdpSocket,data: T,
                                          dest_addr: &str,
                                          transmission_id: u8,
                                          config: Config) {
-    // Send for the first time
-    // TODO: implement error handling if node not reachable
-    send(soc,data,dest_addr,transmission_id);
+
+    send(soc,&data,dest_addr,transmission_id);
 
     // Mutable variables only on the local scope of the
     // function. Should not create any deadlocks.
-    let mut timer = config.time_before_resend;
     let mut retries:u64 = config.retries;
 
     loop {
-        let data = recv(soc);
-        let raw_data = data.unwrap();
-        // If the length is 1 it's an packet
-        if raw_data.len() == 1 && raw_data[0] == transmission_id {
-            break
+        let data_recv = recv(soc,config.time_before_resend);
+        if !data_recv.is_none() {
+            let raw_data = data_recv.unwrap();
+            // If the length is 1 it's an ack packet
+            dbg!(raw_data[0]);
+            if raw_data.len() == 1 && raw_data[0] == transmission_id {
+                break
+            }
         }
 
-        dbg!("sleep");
-        // Sleep the loop for a millisecond
-        thread::sleep(Duration::from_millis(1));
-        timer -= 1;
-
         // Attempting to resend
-        if timer == 0 && retries != 0 {
-            dbg!("resending");
-            send(soc,raw_data,dest_addr,transmission_id);
+        if retries != 0 {
+            send(soc,&data,dest_addr,transmission_id);
             retries -= 1;
-            timer = config.time_before_resend;
         } else if retries == 0 {
-            dbg!("no successful receive");
             break
         }
     }
 }
 
-pub fn recv(socket: &UdpSocket) -> Option<Vec<u8>> {
+pub fn recv(socket: &UdpSocket, timeout: u64) -> Option<Vec<u8>> {
     let mut buf = [0; BUFFER_SIZE];
+
+    socket.set_read_timeout(Some(Duration::from_millis(timeout))).expect("expected to kill the socket after a timeout");
 
     match socket.recv_from(&mut buf) {
         Ok((received_len, send_addr)) => {
@@ -95,8 +91,8 @@ pub fn recv(socket: &UdpSocket) -> Option<Vec<u8>> {
             );
             data
         },
+
         Err(e) => {
-            println!("recv function failed: {e:?}");
             None
         },
     }

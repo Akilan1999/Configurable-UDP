@@ -14,7 +14,6 @@ path = "src/bin.rs"
 [dependencies]
 bincode = "2.0.1"
 
-
 [lints.clippy]
 # all = "warn"
 # pedantic = "warn"
