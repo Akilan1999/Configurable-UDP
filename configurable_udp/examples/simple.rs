@@ -2,17 +2,11 @@
 //!
 //! this is a reliable udp protocol.
 
-pub mod error;
-pub mod reliable;
-pub mod utils;
-pub mod usercalls;
-
 use std::net::UdpSocket;
 use std::thread;
 use bincode::{Decode, Encode};
-use crate::reliable::reliable::{Packet};
-use crate::usercalls::usercalls::{init, recv, send, send_reliable};
-use crate::utils::encode_decode::decode;
+use udp_configurable_lib::usercalls::usercalls::{init, recv, send, send_reliable};
+use udp_configurable_lib::utils::encode_decode::decode;
 
 trait Handler {
     fn handle(self,socket: UdpSocket);
@@ -20,7 +14,7 @@ trait Handler {
 
 impl Handler for Test {
     fn handle(self,socket: UdpSocket) {
-        todo!()
+        // todo work and send over
     }
 }
 
@@ -30,7 +24,7 @@ struct Test {
     number: u8
 }
 
-/// Running example.
+/// Running examples.
 fn main() {
     let soc2 = init("3245");
     let soc1 = init("3246");
@@ -43,7 +37,7 @@ fn main() {
         name: String::from("Test lol"),
     };
 
-    // Sends the tasks as a background process 
+    // Sends the tasks as a background process
     thread::spawn(move || {
         send_reliable(&soc2_net, a, "0.0.0.0:3246", 10, soc2.1);
     });

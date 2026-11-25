@@ -1,12 +1,12 @@
 //! Encode Decode module.
 
-use crate::error;
+use crate::utils::error;
 use bincode::{
     Encode,
     config::{Configuration, Fixint, LittleEndian, NoLimit},
 };
 use core::cell::LazyCell;
-use crate::error::Error;
+use crate::utils::error::Error;
 
 /// Default Configuration for encoding and decoding.
 const CONFIG: LazyCell<Configuration<LittleEndian, Fixint, NoLimit>> = LazyCell::new(|| {
@@ -16,7 +16,7 @@ const CONFIG: LazyCell<Configuration<LittleEndian, Fixint, NoLimit>> = LazyCell:
 });
 
 #[inline]
-pub(crate) fn encode<'a, T>(value: T, slice: &'a mut [u8]) -> Result<EncodedData<'a>, error::Error>
+pub(crate) fn encode<T>(value: T, slice: &mut [u8]) -> Result<EncodedData, error::Error>
 where
     T: Encode,
 {

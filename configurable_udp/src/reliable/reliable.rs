@@ -90,7 +90,7 @@ pub fn send_ack(transmission_id: u8, socket_info: SocketInformation) {
         .expect("send_to should succeed");
 }
  impl Packet for Ack {
-     fn process(self, socket :SocketInformation) -> Option<Vec<u8>> {
+     fn process(self, _socket :SocketInformation) -> Option<Vec<u8>> {
          Some(vec![self.transmission_id])
      }
  }

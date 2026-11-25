@@ -6,9 +6,6 @@ edition = "2024"
 [lib]
 name = "udp_configurable_lib"
 path = "src/lib.rs"
-[[bin]]
-name = "udp_configurable"
-path = "src/bin.rs"
 
 
 [dependencies]

@@ -1,9 +1,8 @@
 //! usercalls module
 
-use std::{io::Error, net::UdpSocket, thread};
-use std::os::unix::raw::time_t;
+use std::{io::Error, net::UdpSocket};
 use std::time::Duration;
-use crate::reliable::reliable::{DataPacketStructure, packet_handling, Packet};
+use crate::reliable::reliable::{DataPacketStructure, packet_handling};
 use crate::utils::{encode_decode::encode, utils::init_udp};
 use crate::utils::encode_decode::encode_vec;
 
@@ -44,7 +43,7 @@ pub fn send<T: bincode::Encode>(soc: &UdpSocket,
     ).expect("send_to should succeed");
 }
 
-// TODO: Improve the error handling bits and is there a better way of writing loops
+
 pub fn send_reliable<T: bincode::Encode>(soc: &UdpSocket,data: T,
                                          dest_addr: &str,
                                          transmission_id: u8,
@@ -66,7 +65,6 @@ pub fn send_reliable<T: bincode::Encode>(soc: &UdpSocket,data: T,
                 break
             }
         }
-
         // Attempting to resend
         if retries != 0 {
             send(soc,&data,dest_addr,transmission_id);
@@ -91,8 +89,7 @@ pub fn recv(socket: &UdpSocket, timeout: u64) -> Option<Vec<u8>> {
             );
             data
         },
-
-        Err(e) => {
+        Err(_) => {
             None
         },
     }
