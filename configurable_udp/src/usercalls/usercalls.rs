@@ -60,7 +60,6 @@ pub fn send_reliable<T: bincode::Encode>(soc: &UdpSocket,data: T,
         if !data_recv.is_none() {
             let raw_data = data_recv.unwrap();
             // If the length is 1 it's an ack packet
-            dbg!(raw_data[0]);
             if raw_data.len() == 1 && raw_data[0] == transmission_id {
                 break
             }
@@ -83,9 +82,9 @@ pub fn recv(socket: &UdpSocket, timeout: u64) -> Option<Vec<u8>> {
     match socket.recv_from(&mut buf) {
         Ok((received_len, send_addr)) => {
             let data = packet_handling(
-                buf.get(..received_len).expect("expected to decode bincode"),
+                buf.get(..received_len).expect("expected to decode data packet or ACK packet"),
                 send_addr,
-                socket.try_clone().expect("soc1 clone failed"),
+                socket.try_clone().expect("socket clone failed"),
             );
             data
         },
